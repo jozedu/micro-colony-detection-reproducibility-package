@@ -76,7 +76,7 @@ python evaluation/evaluate_detectron2_outputs.py \
   --repro-splits reproduced_splits \
   --agar-images-dir /path/to/AGAR/dataset/images \
   --target-model total_100_faster_rcnn_R_101_FPN_3x \
-  --cross-threshold 0.5 \
+  --cross-threshold 0.0 \
   --cross-subsets bright,dark,vague,lowres
 ```
 
@@ -151,7 +151,7 @@ python evaluation/bootstrap_detectron2_coco.py \
   --subset-filter all \
   --model-filter all \
   --threshold 0.0 \
-  --n-boot 500 \
+  --n-boot 300 \
   --seed 12345 \
   --out-dir bootstrap_reports
 ```
@@ -304,7 +304,7 @@ python evaluation/bootstrap_yolov8_coco.py \
   --subset-filter agar \
   --model-filter all \
   --threshold 0.001 \
-  --n-boot 500 \
+  --n-boot 300 \
   --seed 12345 \
   --out-dir bootstrap_reports
 ```
@@ -319,7 +319,7 @@ python evaluation/bootstrap_yolov8_coco.py \
   --subset-filter curated \
   --model-filter all \
   --threshold 0.001 \
-  --n-boot 500 \
+  --n-boot 300 \
   --seed 12345 \
   --out-dir bootstrap_reports
 ```
@@ -360,9 +360,7 @@ YOLO COCOeval:
   - `yolo_cocoeval_<subset>.csv` for `evaluate-runs`
   - `yolo_cross_subset_cocoeval.csv` for `cross-subset`
 
-If Colab RAM is unstable, keep using `evaluate_yolov8_coco.py` but reduce
-memory pressure with `--batch-size 1` and one run at a time
-(`--run-name-contains ...`).
+
 
 Detectron2 bootstrap:
 

@@ -144,8 +144,7 @@ python dataset/download_curated_dataset.py \
   --force
 ```
 
-The download script performs SHA-256 verification automatically for the curated
-packages.
+The download script performs SHA-256 verification automatically for the curated packages.
 
 ## How AGAR Split Reconstruction Works
 
@@ -162,10 +161,6 @@ Main effect:
 - empty plates are retained
 - curated images with 1-100 kept annotations are retained
 
-Important:
-
-- the rule is a maximum of 100 kept annotations per image
-- it is not a fixed number of images per split
 
 ### Group assignment
 
