@@ -1,0 +1,12 @@
+# Shared Python dependencies for the reproducibility package.
+# Install torch/detectron2 separately to match your platform and accelerator.
+
+pyyaml==5.1
+numpy
+pandas
+pycocotools
+Pillow
+ultralytics
+ensemble-boxes
+matplotlib
+seaborn
