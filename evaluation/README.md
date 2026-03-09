@@ -152,7 +152,7 @@ Run on all subsets and all 4 Detectron2 model variants:
 
 ```bash
 python evaluation/bootstrap_detectron2_coco.py \
-  --eval-csv eval_reports/eval_v2_index_long.csv \
+  --eval-csv eval_reports/detectron2_eval_long.csv \
   --repro-splits reproduced_splits \
   --curated-gt-json /path/to/curated/test/_annotations.coco.json \
   --subset-filter all \
@@ -205,7 +205,7 @@ Example (multi-source candidate pool: Detectron2 + YOLO + cross-subset CSVs):
 
 ```bash
 python evaluation/search_wbf_detectron2.py \
-  --eval-csv eval_reports/eval_v2_index_long.csv \
+  --eval-csv eval_reports/detectron2_eval_long.csv \
   --extra-eval-csvs "eval_reports_detectron2_cross/*.csv,eval_reports_yolo/yolo_cocoeval_*.csv,eval_reports_yolo_cross/*.csv" \
   --repro-splits reproduced_splits \
   --curated-gt-json /path/to/curated/test/_annotations.coco.json \
@@ -350,8 +350,9 @@ one/list: yolov8m or yolov8m,yolov8l
 Detectron2:
 
 - Per-run folders under each run (`eval_v2_<timestamp>/`).
-- Per-subset CSVs in `--report-dir`: `eval_v2_index_long_<subset>.csv`.
-- Aggregate CSV in `--report-dir`: `eval_v2_index_long.csv` (all subset CSV rows combined).
+- Per-subset CSVs in `--report-dir`: `detectron2_eval_long_<subset>.csv`.
+- Aggregate CSV in `--report-dir`: `detectron2_eval_long.csv` (all subset CSV rows combined).
+- Cross-subset aggregate CSV in each cross-eval run dir: `detectron2_cross_subset_eval.csv`.
 - Global/per-run CSVs include `transfer`:
   - empty string when run folder name has no transfer token
   - `<subset>` when transfer source subset is present in the run folder name after transfer token

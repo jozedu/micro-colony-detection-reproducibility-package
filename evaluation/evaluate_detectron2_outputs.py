@@ -938,10 +938,10 @@ def run_evaluate_runs(args: argparse.Namespace, env_info: dict[str, Any]) -> Non
 
     test_json_by_subset = build_agar_test_json_map(args.repro_splits)
     subset_csv_paths = {
-        subset: args.report_dir / f"eval_v2_index_long_{subset}.csv"
+        subset: args.report_dir / f"detectron2_eval_long_{subset}.csv"
         for subset in sorted(selected_subsets)
     }
-    csv_filename = args.csv_filename if args.csv_filename else "eval_v2_index_long.csv"
+    csv_filename = args.csv_filename if args.csv_filename else "detectron2_eval_long.csv"
     aggregate_csv_path = args.report_dir / csv_filename
 
     eval_timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -1092,7 +1092,7 @@ def run_cross_subset(args: argparse.Namespace) -> None:
     cross_eval_root = model_dir / f"cross_subset_eval_{eval_timestamp}"
     cross_eval_root.mkdir(parents=True, exist_ok=True)
 
-    cross_csv_path = cross_eval_root / "cross_subset_results.csv"
+    cross_csv_path = cross_eval_root / "detectron2_cross_subset_eval.csv"
     cross_rows: list[dict[str, Any]] = []
     summary_texts: list[str] = []
 
