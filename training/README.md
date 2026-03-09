@@ -2,6 +2,13 @@
 
 This folder contains training scripts separated from dataset-reproduction scripts.
 
+Companion archived model payload:
+- Zenodo DOI: <https://doi.org/10.5281/zenodo.18922895>
+
+Use the Zenodo record to inspect the archived paper checkpoints and compact
+evaluation outputs. Use the commands in this README when you want to retrain the
+models from reproduced AGAR splits or from the curated dataset.
+
 ## Files
 
 - `training/train_detectron2.py`: baseline + transfer-learning training entrypoint
@@ -188,6 +195,9 @@ If the validation folder is `val/` instead of `valid/`, add:
 
 1. Detectron2 training artifacts (`metrics.json`, checkpoints, `model_final.pth`)
 2. Optional `test_metrics.json` when `--eval-test-after-train` is used
+
+For the archived paper checkpoints and compact evaluation exports, see the
+model weights Zenodo payload above.
 
 ## 7) Learning Rate and Iterations
 

@@ -14,9 +14,9 @@ This package contains the scripts used to reproduce the paper workflows for:
 This package is the code-side companion to the reviewer artifacts and dataset releases.
 
 Related external resources:
-- curated dataset Zenodo release
-- model weights and evaluation payload Zenodo release
-- paper repository / GitHub project hosting this package
+- curated dataset Zenodo release: <https://doi.org/10.5281/zenodo.18505210>
+- model weights and evaluation payload Zenodo release: <https://doi.org/10.5281/zenodo.18922895>
+- GitHub repository: <https://github.com/jozedu/micro-colony-detection-reproducibility-package>
 
 ## Installation
 

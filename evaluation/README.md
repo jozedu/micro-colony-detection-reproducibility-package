@@ -1,5 +1,12 @@
 # Evaluation Scripts
 
+Companion archived model/evaluation payload:
+- Zenodo DOI: <https://doi.org/10.5281/zenodo.18922895>
+
+Use the Zenodo record to inspect the archived paper checkpoints and stored
+evaluation outputs. Use the commands in this README when you want to rerun the
+evaluation workflows locally.
+
 ## Files
 
 - `evaluation/evaluate_detectron2_outputs.py`: Detectron2 evaluation workflow.
