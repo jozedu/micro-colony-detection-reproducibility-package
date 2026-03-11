@@ -6,6 +6,7 @@ This package contains the scripts used to reproduce the paper workflows for:
 - curated dataset download
 - Detectron2 and YOLO training
 - Detectron2 and YOLO evaluation
+- inference speed benchmarking
 - bootstrap confidence intervals
 - ensemble search with Weighted Boxes Fusion
 - stress-test evaluation
@@ -40,7 +41,7 @@ paper-aligned pins are documented in `training/README.md`.
 - `configs/`: static configuration files used by the scripts
 - `dataset/`: split reproduction, curated dataset download, COCO-to-YOLO conversion, validation
 - `training/`: Detectron2 and YOLO training entrypoints
-- `evaluation/`: evaluation, bootstrap, and WBF search
+- `evaluation/`: evaluation, inference speed benchmarking, bootstrap, and WBF search
 - `stress_test/`: high-density Detectron2 stress-test workflow
 - `analysis/`: bbox and anchor analysis
 
@@ -51,7 +52,7 @@ paper-aligned pins are documented in `training/README.md`.
 2. `training/README.md`
    Model training entrypoints and expected environments.
 3. `evaluation/README.md`
-   Evaluation, bootstrap, and WBF ensemble search.
+   Evaluation, inference speed benchmarking, bootstrap, and WBF ensemble search.
 4. `stress_test/README.md`
    Stress-test workflow for Detectron2.
 5. `analysis/README.md`

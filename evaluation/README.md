@@ -11,6 +11,7 @@ evaluation workflows locally.
 
 - `evaluation/evaluate_detectron2_outputs.py`: Detectron2 evaluation workflow.
 - `evaluation/evaluate_yolov8_coco.py`: YOLOv8 COCOeval workflow using `model.val(..., save_json=True)` (lower RAM pressure, aligned with the notebook workflow).
+- `evaluation/benchmark_inference_speed.py`: inference-speed benchmark for Detectron2 and YOLO reviewer payloads.
 - `stress_test/run_stress_test_detectron2.py`: Detectron2 high-density stress-test workflow.
 
 ## Environment
@@ -142,6 +143,42 @@ python evaluation/evaluate_yolov8_coco.py \
 --subsets all                 # same as agar for cross-subset mode
 --subsets bright,dark,vague   # custom subset group
 ```
+
+## Inference Speed Benchmark
+
+`benchmark_inference_speed.py` benchmarks end-to-end inference latency for
+Detectron2 and YOLO models discovered under a payload root. It selects image
+paths first, decodes them on demand, excludes warmup passes from the reported
+numbers, and writes one flat CSV with per-model, per-benchmark timing results.
+
+Example:
+
+```bash
+python evaluation/benchmark_inference_speed.py \
+  --payload-root /path/to/model_weights_and_eval_payload \
+  --benchmark agar_total=/path/to/agar_total/images/test \
+  --benchmark curated_test=/path/to/curated_yolo/test/images \
+  --out-csv inference_speed_summary.csv \
+  --framework-filter all \
+  --warmup-images 20 \
+  --timed-images 100 \
+  --device cuda
+```
+
+Useful filters and controls:
+
+```bash
+--framework-filter detectron2     # only Detectron2 models
+--framework-filter yolo           # only YOLO models
+--model-name-filter yolov8m       # case-insensitive substring match
+--device cpu                      # benchmark on CPU
+--yolo-imgsz 640                  # YOLO inference size
+--detectron2-dets-per-image 100   # Detectron2 max detections
+```
+
+The output CSV includes the benchmark name, framework, normalized model name,
+training subset tag, timing configuration, mean latency in milliseconds per
+image, and images per second.
 
 ## Detectron2: Bootstrap CIs
 
