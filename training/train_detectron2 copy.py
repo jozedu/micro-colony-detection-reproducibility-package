@@ -32,9 +32,14 @@ DEFAULT_MODELS = (
 )
 
 
+class EarlyStopException(RuntimeError):
+    """Signal that training should stop early after an evaluation window."""
+
+
 def load_runtime_dependencies() -> None:
     global torch
     global comm
+    global d2_hooks
     global model_zoo
     global get_cfg
     global DatasetMapper
@@ -56,6 +61,7 @@ def load_runtime_dependencies() -> None:
 
         import torch
         import detectron2.utils.comm as comm
+        from detectron2.engine import hooks as d2_hooks
         from detectron2 import model_zoo
         from detectron2.config import get_cfg
         from detectron2.data import DatasetMapper, build_detection_test_loader
@@ -69,7 +75,53 @@ def load_runtime_dependencies() -> None:
         sys.exit(1)
 
 
-def make_trainer_with_val_loss() -> type:
+def latest_storage_scalar(storage: Any, key: str) -> tuple[float, int] | None:
+    latest = storage.latest()
+    if key not in latest:
+        return None
+
+    value = latest[key]
+    if isinstance(value, tuple):
+        metric, iteration = value
+        return float(metric), int(iteration)
+
+    return float(value), -1
+
+
+def write_early_stopping_state(
+    output_dir: Path,
+    *,
+    metric: str,
+    mode: str,
+    min_delta: float,
+    patience: int,
+    best_score: float | None,
+    best_iter: int | None,
+    best_eval_iter: int | None,
+    last_score: float | None,
+    last_iter: int | None,
+    num_bad_evals: int,
+    stopped_early: bool,
+    stop_reason: str | None,
+) -> None:
+    payload = {
+        "metric": metric,
+        "mode": mode,
+        "min_delta": min_delta,
+        "patience": patience,
+        "best_score": best_score,
+        "best_iter": best_iter,
+        "best_eval_iter": best_eval_iter,
+        "last_score": last_score,
+        "last_iter": last_iter,
+        "num_bad_evals": num_bad_evals,
+        "stopped_early": stopped_early,
+        "stop_reason": stop_reason,
+    }
+    (output_dir / "early_stopping.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def make_trainer_with_val_loss(args: argparse.Namespace, output_dir: Path) -> type:
     class LossEvalHook(HookBase):
         def __init__(self, eval_period: int, model: torch.nn.Module, data_loader: Any):
             self._model = model
@@ -123,6 +175,86 @@ def make_trainer_with_val_loss() -> type:
             if is_final or (self._period > 0 and next_iter % self._period == 0):
                 self._do_loss_eval()
 
+    class EarlyStoppingHook(HookBase):
+        def __init__(self) -> None:
+            self.metric = args.early_stop_metric
+            self.mode = args.early_stop_mode
+            self.min_delta = args.early_stop_min_delta
+            self.patience = args.early_stop_patience
+            self.best_score: float | None = None
+            self.best_iter: int | None = None
+            self.best_eval_iter: int | None = None
+            self.num_bad_evals = 0
+
+        def _is_better(self, score: float) -> bool:
+            if self.best_score is None:
+                return True
+            if self.mode == "max":
+                return score > (self.best_score + self.min_delta)
+            return score < (self.best_score - self.min_delta)
+
+        def after_step(self) -> None:
+            if self.patience is None or self.patience <= 0:
+                return
+
+            next_iter = self.trainer.iter + 1
+            eval_period = self.trainer.cfg.TEST.EVAL_PERIOD
+            is_final = next_iter >= self.trainer.max_iter
+            if not is_final and (eval_period <= 0 or next_iter % eval_period != 0):
+                return
+
+            latest = latest_storage_scalar(self.trainer.storage, self.metric)
+            if latest is None:
+                print(
+                    f"[early-stop] Metric '{self.metric}' not found in storage at iter {next_iter}. "
+                    "Skipping patience update."
+                )
+                return
+
+            score, metric_iter = latest
+            if self._is_better(score):
+                self.best_score = score
+                self.best_iter = next_iter
+                self.best_eval_iter = metric_iter
+                self.num_bad_evals = 0
+                print(
+                    f"[early-stop] New best {self.metric}={score:.6f} at iter {next_iter} "
+                    f"(eval iter {metric_iter})."
+                )
+            else:
+                self.num_bad_evals += 1
+                print(
+                    f"[early-stop] No improvement in {self.metric}: score={score:.6f}, "
+                    f"best={self.best_score:.6f}, bad_evals={self.num_bad_evals}/{self.patience}."
+                )
+
+            stop_reason = None
+            stopped_early = False
+            if self.num_bad_evals >= self.patience and not is_final:
+                stopped_early = True
+                stop_reason = (
+                    f"No improvement in {self.metric} for {self.num_bad_evals} evaluation window(s)."
+                )
+
+            write_early_stopping_state(
+                output_dir,
+                metric=self.metric,
+                mode=self.mode,
+                min_delta=self.min_delta,
+                patience=self.patience,
+                best_score=self.best_score,
+                best_iter=self.best_iter,
+                best_eval_iter=self.best_eval_iter,
+                last_score=score,
+                last_iter=next_iter,
+                num_bad_evals=self.num_bad_evals,
+                stopped_early=stopped_early,
+                stop_reason=stop_reason,
+            )
+
+            if stopped_early:
+                raise EarlyStopException(stop_reason)
+
     class TrainerWithValLoss(DefaultTrainer):
         @classmethod
         def build_evaluator(cls, cfg: Any, dataset_name: str, output_folder: str | None = None) -> COCOEvaluator:
@@ -131,9 +263,12 @@ def make_trainer_with_val_loss() -> type:
 
         def build_hooks(self) -> list[Any]:
             hooks = super().build_hooks()
+            eval_hook_index = next((i for i, hook in enumerate(hooks) if isinstance(hook, d2_hooks.EvalHook)), None)
+
             if self.cfg.TEST.EVAL_PERIOD > 0 and self.cfg.DATASETS.TEST:
+                insert_at = eval_hook_index if eval_hook_index is not None else -1
                 hooks.insert(
-                    -1,
+                    insert_at,
                     LossEvalHook(
                         self.cfg.TEST.EVAL_PERIOD,
                         self.model,
@@ -144,6 +279,11 @@ def make_trainer_with_val_loss() -> type:
                         ),
                     ),
                 )
+
+            if args.early_stop_patience is not None and args.early_stop_patience > 0:
+                insert_at = eval_hook_index if eval_hook_index is not None else max(len(hooks) - 1, 0)
+                hooks.insert(insert_at, EarlyStoppingHook())
+
             return hooks
 
     return TrainerWithValLoss
@@ -235,7 +375,34 @@ def parse_args() -> argparse.Namespace:
         default=20,
         help="Write training_progress.{json,txt} every N iterations (default: 20).",
     )
+    parser.add_argument(
+        "--early-stop-patience",
+        type=int,
+        help="Stop if eval metric does not improve for this many evaluation windows.",
+    )
+    parser.add_argument(
+        "--early-stop-metric",
+        default="bbox/AP50",
+        help="Detectron2 storage metric used for early stopping (default: bbox/AP50).",
+    )
+    parser.add_argument(
+        "--early-stop-mode",
+        choices=("max", "min"),
+        default="max",
+        help="Whether larger or smaller metric values are better (default: max).",
+    )
+    parser.add_argument(
+        "--early-stop-min-delta",
+        type=float,
+        default=0.0,
+        help="Minimum metric change required to count as an improvement.",
+    )
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument(
+        "--resume-dir",
+        type=Path,
+        help="Existing Detectron2 output directory to resume in. Requires --resume.",
+    )
     parser.add_argument("--seed", type=int)
     parser.add_argument("--device", choices=("cuda", "cpu"))
     parser.add_argument("--eval-test-after-train", action="store_true")
@@ -500,7 +667,6 @@ def main() -> None:
     args = parse_args()
     load_runtime_dependencies()
     setup_logger()
-    trainer_with_val_loss_cls = make_trainer_with_val_loss()
 
     maybe_set_seed(args.seed)
 
@@ -551,14 +717,28 @@ def main() -> None:
     else:
         lr_step_iter = max(1, int(args.lr_step_epochs * iters_per_epoch))
 
+    if args.early_stop_patience is not None and args.early_stop_patience > 0 and eval_period <= 0:
+        print("ERROR: early stopping requires eval_period > 0.")
+        sys.exit(1)
+
     output_root = args.output_root.resolve()
     output_root.mkdir(parents=True, exist_ok=True)
 
     model_name = model_name_from_config(args.model_config)
     timestamp = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
     run_prefix = args.run_name.strip() if args.run_name else dataset_tag
-    output_dir = output_root / f"{run_prefix}_{model_name}_{timestamp}"
-    output_dir.mkdir(parents=True, exist_ok=True)
+
+    if args.resume_dir is not None:
+        if not args.resume:
+            print("ERROR: --resume-dir requires --resume.")
+            sys.exit(1)
+        output_dir = args.resume_dir.resolve()
+        if not output_dir.exists():
+            print(f"ERROR: resume dir not found: {output_dir}")
+            sys.exit(1)
+    else:
+        output_dir = output_root / f"{run_prefix}_{model_name}_{timestamp}"
+        output_dir.mkdir(parents=True, exist_ok=True)
 
     dataset_prefix = f"{dataset_tag}_{timestamp}".replace("-", "_").replace(":", "_")
     train_name, val_name, test_name = register_datasets(
@@ -635,21 +815,42 @@ def main() -> None:
         "checkpoint_period": checkpoint_period,
         "eval_period": eval_period,
         "progress_period": args.progress_period,
+        "early_stop_patience": args.early_stop_patience,
+        "early_stop_metric": args.early_stop_metric,
+        "early_stop_mode": args.early_stop_mode,
+        "early_stop_min_delta": args.early_stop_min_delta,
+        "resume": args.resume,
+        "resume_dir": str(output_dir) if args.resume else None,
         "seed": args.seed,
     }
     (output_dir / "run_manifest.json").write_text(json.dumps(training_manifest, indent=2), encoding="utf-8")
 
+    trainer_with_val_loss_cls = make_trainer_with_val_loss(args, output_dir)
     trainer_cls = DefaultTrainer if args.disable_val_loss_hook else trainer_with_val_loss_cls
     trainer = trainer_cls(cfg)
     trainer.register_hooks([make_progress_hook(args.progress_period, output_dir)()])
     trainer.resume_or_load(resume=args.resume)
-    trainer.train()
+    stopped_early = False
+    early_stop_message = None
+    try:
+        trainer.train()
+    except EarlyStopException as exc:
+        stopped_early = True
+        early_stop_message = str(exc)
+        print(f"\nEarly stopping triggered: {early_stop_message}")
 
     if args.eval_test_after_train and test_name:
         print("\nRunning post-training test evaluation...")
         test_results = evaluate_test_split(trainer.model, cfg, test_name, output_dir)
         (output_dir / "test_metrics.json").write_text(json.dumps(test_results, indent=2), encoding="utf-8")
         print(f"Saved test metrics: {output_dir / 'test_metrics.json'}")
+
+    if stopped_early:
+        manifest_path = output_dir / "run_manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["stopped_early"] = True
+        manifest["early_stop_message"] = early_stop_message
+        manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
     print(f"\nDone. Output: {output_dir}")
 
