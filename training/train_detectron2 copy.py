@@ -159,8 +159,8 @@ def make_trainer_with_val_loss(args: argparse.Namespace, output_dir: Path) -> ty
                     total_seconds_per_img = (time.perf_counter() - start_time) / max(iters_after_start, 1)
                     eta = timedelta(seconds=int(total_seconds_per_img * (total - idx - 1)))
                     log_every_n_seconds(
-                        level=20,
-                        msg=f"Validation loss {idx + 1}/{total}. {seconds_per_img:.4f} s/img. ETA={eta}",
+                        20,
+                        f"Validation loss {idx + 1}/{total}. {seconds_per_img:.4f} s/img. ETA={eta}",
                         n=5,
                     )
 
@@ -281,7 +281,11 @@ def make_trainer_with_val_loss(args: argparse.Namespace, output_dir: Path) -> ty
                 )
 
             if args.early_stop_patience is not None and args.early_stop_patience > 0:
-                insert_at = eval_hook_index if eval_hook_index is not None else max(len(hooks) - 1, 0)
+                eval_hook_index = next(
+                    (i for i, hook in enumerate(hooks) if isinstance(hook, d2_hooks.EvalHook)),
+                    None,
+                )
+                insert_at = eval_hook_index + 1 if eval_hook_index is not None else max(len(hooks) - 1, 0)
                 hooks.insert(insert_at, EarlyStoppingHook())
 
             return hooks
