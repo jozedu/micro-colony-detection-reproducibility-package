@@ -265,7 +265,7 @@ def make_trainer_with_val_loss(args: argparse.Namespace, output_dir: Path) -> ty
             hooks = super().build_hooks()
             eval_hook_index = next((i for i, hook in enumerate(hooks) if isinstance(hook, d2_hooks.EvalHook)), None)
 
-            if self.cfg.TEST.EVAL_PERIOD > 0 and self.cfg.DATASETS.TEST:
+            if not args.disable_val_loss_hook and self.cfg.TEST.EVAL_PERIOD > 0 and self.cfg.DATASETS.TEST:
                 insert_at = eval_hook_index if eval_hook_index is not None else -1
                 hooks.insert(
                     insert_at,
@@ -829,8 +829,7 @@ def main() -> None:
     }
     (output_dir / "run_manifest.json").write_text(json.dumps(training_manifest, indent=2), encoding="utf-8")
 
-    trainer_with_val_loss_cls = make_trainer_with_val_loss(args, output_dir)
-    trainer_cls = DefaultTrainer if args.disable_val_loss_hook else trainer_with_val_loss_cls
+    trainer_cls = make_trainer_with_val_loss(args, output_dir)
     trainer = trainer_cls(cfg)
     trainer.register_hooks([make_progress_hook(args.progress_period, output_dir)()])
     trainer.resume_or_load(resume=args.resume)
