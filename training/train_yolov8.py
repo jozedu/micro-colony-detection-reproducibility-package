@@ -51,7 +51,7 @@ def parse_args() -> argparse.Namespace:
         help="Ultralytics model or checkpoint path (e.g., yolov8n.pt, yolov8s.pt).",
     )
     parser.add_argument("--imgsz", type=int, default=640)
-    parser.add_argument("--batch-size", type=int, default=16)
+    parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--device", default=None, help="Device id or 'cpu'.")
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--seed", type=int, default=42)
