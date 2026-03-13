@@ -11,8 +11,7 @@ models from reproduced AGAR splits or from the curated dataset.
 
 ## Files
 
-- `training/train_detectron2.py`: baseline + transfer-learning training entrypoint
-- `training/ablation_train_detectron.py`: Detectron2 ablation entrypoint with checkpointing, resume, progress files, and early stopping
+- `training/train_detectron2.py`: Detectron2 training entrypoint for paper-aligned runs, transfer learning, and extended ablation runs
 - `training/train_yolov8.py`: YOLOv8 training entrypoint for review-process runs
 
 ## 1) Environment
@@ -195,7 +194,11 @@ If the validation folder is `val/` instead of `valid/`, add:
 `train_detectron2.py` saves:
 
 1. Detectron2 training artifacts (`metrics.json`, checkpoints, `model_final.pth`)
-2. Optional `test_metrics.json` when `--eval-test-after-train` is used
+2. `run_manifest.json`
+3. `training_progress.json`
+4. `training_progress.txt`
+5. `early_stopping.json` when early stopping is enabled
+6. Optional `test_metrics.json` when `--eval-test-after-train` is used
 
 For the archived paper checkpoints and compact evaluation exports, see the
 model weights Zenodo payload above.
@@ -214,14 +217,12 @@ For a fixed iteration schedule, set `--iterations` explicitly. Example:
 
 ```bash
 python training/train_detectron2.py --help
-python training/ablation_train_detectron.py --help
 python training/train_yolov8.py --help
 ```
 
-## 8.1) Detectron2 Ablation / Extended-Training Runs
+## 8.1) Detectron2 Extended / Ablation Runs
 
-`ablation_train_detectron.py` is the maintained ablation-oriented Detectron2
-entrypoint used for longer AGAR runs where you want:
+`train_detectron2.py` also supports longer AGAR ablation runs where you want:
 
 1. periodic checkpoints
 2. resume from an existing run directory
@@ -232,7 +233,7 @@ entrypoint used for longer AGAR runs where you want:
 Example:
 
 ```bash
-python training/ablation_train_detectron.py \
+python training/train_detectron2.py \
   --repro-splits reproduced_splits \
   --group total \
   --images-root /path/to/AGAR/dataset/images \
@@ -255,7 +256,7 @@ python training/ablation_train_detectron.py \
 Resume an interrupted ablation run:
 
 ```bash
-python training/ablation_train_detectron.py \
+python training/train_detectron2.py \
   --repro-splits reproduced_splits \
   --group total \
   --images-root /path/to/AGAR/dataset/images \
