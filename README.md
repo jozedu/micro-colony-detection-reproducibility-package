@@ -40,7 +40,7 @@ paper-aligned pins are documented in `training/README.md`.
 
 - `configs/`: static configuration files used by the scripts
 - `dataset/`: split reproduction, curated dataset download, COCO-to-YOLO conversion, validation
-- `training/`: Detectron2 and YOLO training entrypoints
+- `training/`: baseline training entrypoints plus the Detectron2 ablation/extended-training entrypoint
 - `evaluation/`: evaluation, inference speed benchmarking, bootstrap, and WBF search
 - `stress_test/`: high-density Detectron2 stress-test workflow
 - `analysis/`: bbox and anchor analysis

@@ -12,6 +12,7 @@ models from reproduced AGAR splits or from the curated dataset.
 ## Files
 
 - `training/train_detectron2.py`: baseline + transfer-learning training entrypoint
+- `training/ablation_train_detectron.py`: Detectron2 ablation entrypoint with checkpointing, resume, progress files, and early stopping
 - `training/train_yolov8.py`: YOLOv8 training entrypoint for review-process runs
 
 ## 1) Environment
@@ -213,8 +214,68 @@ For a fixed iteration schedule, set `--iterations` explicitly. Example:
 
 ```bash
 python training/train_detectron2.py --help
+python training/ablation_train_detectron.py --help
 python training/train_yolov8.py --help
 ```
+
+## 8.1) Detectron2 Ablation / Extended-Training Runs
+
+`ablation_train_detectron.py` is the maintained ablation-oriented Detectron2
+entrypoint used for longer AGAR runs where you want:
+
+1. periodic checkpoints
+2. resume from an existing run directory
+3. lightweight progress files
+4. optional early stopping on a Detectron2 validation metric
+5. optional disabling of the extra validation-loss sweep while keeping COCO eval
+
+Example:
+
+```bash
+python training/ablation_train_detectron.py \
+  --repro-splits reproduced_splits \
+  --group total \
+  --images-root /path/to/AGAR/dataset/images \
+  --model-config COCO-Detection/faster_rcnn_R_101_FPN_3x.yaml \
+  --run-name total_100 \
+  --epochs 100 \
+  --batch-size 8 \
+  --base-lr 0.005 \
+  --lr-step-ratio 0.3 \
+  --checkpoint-period 369 \
+  --eval-period 738 \
+  --progress-period 350 \
+  --disable-val-loss-hook \
+  --early-stop-patience 7 \
+  --early-stop-metric bbox/AP \
+  --early-stop-mode max \
+  --output-root outputs_detectron2
+```
+
+Resume an interrupted ablation run:
+
+```bash
+python training/ablation_train_detectron.py \
+  --repro-splits reproduced_splits \
+  --group total \
+  --images-root /path/to/AGAR/dataset/images \
+  --model-config COCO-Detection/faster_rcnn_R_101_FPN_3x.yaml \
+  --run-name total_100 \
+  --epochs 100 \
+  --batch-size 8 \
+  --base-lr 0.005 \
+  --lr-step-ratio 0.3 \
+  --resume \
+  --resume-dir /path/to/existing/run_dir \
+  --output-root outputs_detectron2
+```
+
+Additional run-state files written by this script include:
+
+1. `run_manifest.json`
+2. `training_progress.json`
+3. `training_progress.txt`
+4. `early_stopping.json`
 
 ## 9) YOLOv8 Review Training
 
