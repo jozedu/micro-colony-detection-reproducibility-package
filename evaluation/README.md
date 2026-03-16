@@ -361,7 +361,6 @@ Curated bootstrap:
 ```bash
 python evaluation/bootstrap_yolov8_coco.py \
   --eval-csv eval_reports/yolo_cocoeval_curated.csv \
-  --repro-splits reproduced_splits \
   --curated-gt-json /path/to/curated/test/_annotations.coco.json \
   --subset-filter curated \
   --model-filter all \
@@ -370,6 +369,9 @@ python evaluation/bootstrap_yolov8_coco.py \
   --seed 12345 \
   --out-dir bootstrap_reports
 ```
+
+`--repro-splits` is only required when the selected subsets include AGAR outputs
+(`total`, `bright`, `dark`, `vague`, `lowres`).
 
 Model and subset selectors:
 

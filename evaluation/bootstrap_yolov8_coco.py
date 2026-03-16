@@ -59,7 +59,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--repro-splits",
         type=Path,
-        required=True,
         help="Directory containing reproduced COCO split JSON files.",
     )
     parser.add_argument(
@@ -256,7 +255,11 @@ def model_matches(row: dict[str, Any], filters: list[str]) -> bool:
     return False
 
 
-def build_subset_gt_map(repro_splits: Path, curated_gt: Path | None) -> dict[str, Path]:
+def build_subset_gt_map(
+    repro_splits: Path | None,
+    curated_gt: Path | None,
+    required_subsets: set[str],
+) -> dict[str, Path]:
     def resolve_subset_test_json(subset: str) -> Path:
         candidates = [
             repro_splits / f"{subset}_test_coco.json",
@@ -273,9 +276,14 @@ def build_subset_gt_map(repro_splits: Path, curated_gt: Path | None) -> dict[str
         sys.exit(1)
 
     out: dict[str, Path] = {}
-    for subset in AGAR_SUBSETS:
-        out[subset] = resolve_subset_test_json(subset)
-    if curated_gt is not None:
+    agar_required = [subset for subset in AGAR_SUBSETS if subset in required_subsets]
+    if agar_required:
+        if repro_splits is None:
+            print("ERROR: --repro-splits is required for AGAR subset bootstrap.")
+            sys.exit(1)
+        for subset in agar_required:
+            out[subset] = resolve_subset_test_json(subset)
+    if "curated" in required_subsets and curated_gt is not None:
         out["curated"] = require_file(curated_gt, "curated GT json")
     return out
 
@@ -620,7 +628,11 @@ def main() -> None:
     load_runtime_dependencies()
 
     args.eval_csv = require_file(args.eval_csv.resolve(), "eval csv")
-    args.repro_splits = require_dir(args.repro_splits.resolve(), "repro splits")
+    subset_selection = resolve_subset_filter(args.subset_filter)
+    model_filters = resolve_model_filter(args.model_filter)
+
+    if args.repro_splits is not None:
+        args.repro_splits = require_dir(args.repro_splits.resolve(), "repro splits")
     if args.curated_gt_json is not None:
         args.curated_gt_json = require_file(args.curated_gt_json.resolve(), "curated GT json")
     args.out_dir = args.out_dir.resolve()
@@ -630,9 +642,7 @@ def main() -> None:
         print("ERROR: --n-boot must be > 0")
         sys.exit(1)
 
-    subset_selection = resolve_subset_filter(args.subset_filter)
-    model_filters = resolve_model_filter(args.model_filter)
-    gt_map = build_subset_gt_map(args.repro_splits, args.curated_gt_json)
+    gt_map = build_subset_gt_map(args.repro_splits, args.curated_gt_json, subset_selection)
 
     if "curated" in subset_selection and "curated" not in gt_map:
         print("ERROR: curated subset selected but --curated-gt-json was not provided.")
