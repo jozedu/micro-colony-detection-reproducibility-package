@@ -17,6 +17,7 @@ This package is the code-side companion to the reviewer artifacts and dataset re
 Related external resources:
 - curated dataset Zenodo release: <https://doi.org/10.5281/zenodo.18505210>
 - model weights and evaluation payload Zenodo release: <https://doi.org/10.5281/zenodo.18922895>
+- paper results bundle Zenodo release: <https://doi.org/10.5281/zenodo.19048988>
 - GitHub repository: <https://github.com/jozedu/micro-colony-detection-reproducibility-package>
 
 ## Installation
@@ -105,6 +106,8 @@ python dataset/download_curated_dataset.py \
 - AGAR-derived files are reproduced from the user's own AGAR dataset copy.
 - The curated dataset is obtained from the separate curated dataset release.
 - Model weights and compact evaluation payloads are distributed separately from this package.
+- Paper result tables, aggregate evaluation CSVs, bootstrap outputs, WBF searches,
+  and related analysis artifacts are distributed in the separate results bundle release.
 - `requirements.txt` covers the shared Python dependencies in this package.
 - Detectron2-specific workflows still require a compatible `torch` + `detectron2`
   install on top of the shared dependencies.

@@ -5,6 +5,9 @@ This folder contains training scripts separated from dataset-reproduction script
 Companion archived model payload:
 - Zenodo DOI: <https://doi.org/10.5281/zenodo.18922895>
 
+Companion archived paper results bundle:
+- Zenodo DOI: <https://doi.org/10.5281/zenodo.19048988>
+
 Use the Zenodo record to inspect the archived paper checkpoints and compact
 evaluation outputs. Use the commands in this README when you want to retrain the
 models from reproduced AGAR splits or from the curated dataset.
