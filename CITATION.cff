@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+title: "Deep Neural Networks in Medical Microbiology for Bacterial Colonies Classification: Reproducibility Package"
+message: "If you use this software, please cite the associated paper."
+type: software
+authors:
+  - family-names: Pereira
+    given-names: José Duarte
+    orcid: "https://orcid.org/0009-0004-8698-4959"
+repository-code: "https://github.com/jozedu/micro-colony-detection-reproducibility-package"
+doi: "10.5281/zenodo.19065201"
+license: MIT
